@@ -2,21 +2,27 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
+  request: Request,
+  context: any
 ) {
   try {
+    const id = context.params.id;
+
     const reservation =
       await prisma.reservation.findUnique({
         where: {
-          id: params.id,
+          id,
         },
       });
 
     if (!reservation) {
       return NextResponse.json(
-        { error: "Reservation not found" },
-        { status: 404 }
+        {
+          error: "Reservation not found",
+        },
+        {
+          status: 404,
+        }
       );
     }
 
@@ -43,7 +49,7 @@ export async function POST(
 
     await prisma.reservation.update({
       where: {
-        id: params.id,
+        id,
       },
       data: {
         status: "RELEASED",
@@ -54,9 +60,15 @@ export async function POST(
       success: true,
     });
   } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
-      { error: "Release failed" },
-      { status: 500 }
+      {
+        error: "Release failed",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }

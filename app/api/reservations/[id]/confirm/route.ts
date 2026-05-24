@@ -2,13 +2,15 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
+  request: Request,
+  context: any
 ) {
   try {
+    const id = context.params.id;
+
     await prisma.reservation.update({
       where: {
-        id: params.id,
+        id,
       },
       data: {
         status: "CONFIRMED",
@@ -19,9 +21,15 @@ export async function POST(
       success: true,
     });
   } catch (error) {
+    console.error(error);
+
     return NextResponse.json(
-      { error: "Confirmation failed" },
-      { status: 500 }
+      {
+        error: "Confirmation failed",
+      },
+      {
+        status: 500,
+      }
     );
   }
 }
