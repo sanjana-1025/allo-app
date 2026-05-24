@@ -1,64 +1,72 @@
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+
   try {
+
     const body = await req.json();
 
-    const productId = body.productId;
-    const warehouseId = body.warehouseId;
-    const quantity = body.quantity;
+    const { productId, warehouseId, quantity } = body;
 
-    const inventory = await prisma.inventory.findFirst({
-      where: {
-        productId: productId,
-        warehouseId: warehouseId,
-      },
-    });
+    const result = await prisma.$transaction(async (tx) => {
 
-    if (!inventory) {
-      return NextResponse.json(
-        { error: "Inventory not found" },
-        { status: 404 }
-      );
-    }
+      const inventoryRows = await tx.$queryRawUnsafe(`
+        SELECT *
+        FROM "Inventory"
+        WHERE "productId" = '${productId}'
+        AND "warehouseId" = '${warehouseId}'
+        FOR UPDATE
+      `);
 
-    const availableStock =
-      inventory.totalStock -
-      inventory.reservedStock;
+      const inventory = (inventoryRows as any[])[0];
 
-    if (availableStock < quantity) {
-      return NextResponse.json(
-        { error: "Not enough stock" },
-        { status: 400 }
-      );
-    }
+      if (!inventory) {
+        throw new Error("Inventory not found");
+      }
 
-    await prisma.inventory.update({
-      where: {
-        id: inventory.id,
-      },
-      data: {
-        reservedStock:
-          inventory.reservedStock + quantity,
-      },
-    });
+      const available =
+        inventory.totalStock - inventory.reservedStock;
 
-    const reservation =
-      await prisma.reservation.create({
+      if (available < quantity) {
+
+        return NextResponse.json(
+          { error: "Not enough stock" },
+          { status: 409 }
+        );
+      }
+
+      await tx.inventory.update({
+        where: {
+          id: inventory.id,
+        },
         data: {
-          productId: productId,
-          warehouseId: warehouseId,
-          quantity: quantity,
-          status: "PENDING",
-          expiresAt: new Date(
-            Date.now() + 5 * 60 * 1000
-          ),
+          reservedStock: {
+            increment: quantity,
+          },
         },
       });
 
-    return NextResponse.json(reservation);
+      const expiresAt = new Date(
+        Date.now() + 10 * 60 * 1000
+      );
+
+      const reservation = await tx.reservation.create({
+        data: {
+          productId,
+          warehouseId,
+          quantity,
+          expiresAt,
+        },
+      });
+
+      return reservation;
+    });
+
+    return NextResponse.json(result);
+
   } catch (error) {
+
     console.log(error);
 
     return NextResponse.json(
