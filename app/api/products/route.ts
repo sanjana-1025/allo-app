@@ -10,15 +10,12 @@ export async function GET() {
       },
     });
 
-    const formatted = inventory.map((item: any) => ({
+    const formatted = inventory.map((item) => ({
       productId: item.product.id,
       productName: item.product.name,
+      warehouseId: item.warehouse.id,
       warehouseName: item.warehouse.name,
-      availableStock:
-        item.availableStock ??
-        item.stock ??
-        item.quantity ??
-        0,
+      availableStock: item.totalStock - item.reservedStock,
     }));
 
     return NextResponse.json(formatted);
