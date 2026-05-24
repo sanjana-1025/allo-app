@@ -13,22 +13,38 @@ interface Product {
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [message, setMessage] = useState("");
-  const [timer, setTimer] = useState(0);
-  const [reservationId, setReservationId] = useState("");
+
+  const [activeReservation, setActiveReservation] = useState<{
+    productId: string;
+    reservationId: string;
+    timer: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
   useEffect(() => {
-    if (timer <= 0) return;
+    if (!activeReservation) return;
+
+    if (activeReservation.timer <= 0) {
+      cancelReservation();
+      return;
+    }
 
     const interval = setInterval(() => {
-      setTimer((prev) => prev - 1);
+      setActiveReservation((prev) =>
+        prev
+          ? {
+              ...prev,
+              timer: prev.timer - 1,
+            }
+          : null
+      );
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [timer]);
+  }, [activeReservation]);
 
   const fetchProducts = async () => {
     try {
@@ -47,20 +63,20 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          productId,
-        }),
+        body: JSON.stringify({ productId }),
       });
 
       const data = await res.json();
 
-      setReservationId(data.reservationId);
+      setActiveReservation({
+        productId,
+        reservationId: data.reservationId,
+        timer: 300,
+      });
 
-      setTimer(300);
-
-      // REDUCE STOCK HERE
-      setProducts((prevProducts) =>
-        prevProducts.map((item) =>
+      // reduce stock
+      setProducts((prev) =>
+        prev.map((item) =>
           item.productId === productId
             ? {
                 ...item,
@@ -75,31 +91,53 @@ export default function Home() {
 
       setMessage("Reservation created successfully");
     } catch {
-      setMessage("Something went wrong");
+      setMessage("Reservation failed");
     }
   };
 
   const confirmReservation = async () => {
+    if (!activeReservation) return;
+
     try {
-      await fetch(`/api/reservations/${reservationId}/confirm`, {
-        method: "POST",
-      });
+      await fetch(
+        `/api/reservations/${activeReservation.reservationId}/confirm`,
+        {
+          method: "POST",
+        }
+      );
 
       setMessage("Reservation confirmed");
-      setTimer(0);
+      setActiveReservation(null);
     } catch {
       setMessage("Confirmation failed");
     }
   };
 
   const cancelReservation = async () => {
+    if (!activeReservation) return;
+
     try {
-      await fetch(`/api/reservations/${reservationId}/release`, {
-        method: "POST",
-      });
+      await fetch(
+        `/api/reservations/${activeReservation.reservationId}/release`,
+        {
+          method: "POST",
+        }
+      );
+
+      // restore stock
+      setProducts((prev) =>
+        prev.map((item) =>
+          item.productId === activeReservation.productId
+            ? {
+                ...item,
+                availableStock: item.availableStock + 1,
+              }
+            : item
+        )
+      );
 
       setMessage("Reservation cancelled");
-      setTimer(0);
+      setActiveReservation(null);
     } catch {
       setMessage("Cancellation failed");
     }
@@ -111,15 +149,16 @@ export default function Home() {
         minHeight: "100vh",
         background: "black",
         color: "white",
-        padding: "40px",
+        padding: "30px",
         fontFamily: "Arial",
       }}
     >
       <h1
         style={{
-          fontSize: "70px",
           textAlign: "center",
+          fontSize: "55px",
           fontWeight: "bold",
+          marginBottom: "10px",
         }}
       >
         Inventory Reservation System
@@ -129,8 +168,8 @@ export default function Home() {
         style={{
           textAlign: "center",
           color: "#aaa",
-          fontSize: "22px",
-          marginBottom: "40px",
+          marginBottom: "30px",
+          fontSize: "18px",
         }}
       >
         Multi-Warehouse Real-Time Reservation Platform
@@ -140,29 +179,29 @@ export default function Home() {
         <div
           style={{
             background: "#1e293b",
-            padding: "20px",
-            borderRadius: "15px",
+            padding: "15px",
+            borderRadius: "12px",
             textAlign: "center",
-            marginBottom: "30px",
-            fontSize: "24px",
+            marginBottom: "20px",
+            fontSize: "18px",
           }}
         >
           {message}
         </div>
       )}
 
-      {timer > 0 && (
+      {activeReservation && (
         <div
           style={{
             background: "#111827",
-            padding: "20px",
-            borderRadius: "15px",
+            padding: "15px",
+            borderRadius: "12px",
             textAlign: "center",
             marginBottom: "30px",
-            fontSize: "24px",
+            fontSize: "20px",
           }}
         >
-          Reservation expires in: {timer} sec
+          Reservation expires in: {activeReservation.timer} sec
         </div>
       )}
 
@@ -170,23 +209,23 @@ export default function Home() {
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: "30px",
           alignItems: "center",
+          gap: "25px",
         }}
       >
         {products.map((item) => (
           <div
             key={item.productId}
             style={{
-              width: "700px",
+              width: "500px",
               background: "#081028",
-              padding: "40px",
-              borderRadius: "25px",
+              padding: "30px",
+              borderRadius: "20px",
             }}
           >
             <h2
               style={{
-                fontSize: "60px",
+                fontSize: "42px",
                 marginBottom: "10px",
               }}
             >
@@ -196,7 +235,8 @@ export default function Home() {
             <p
               style={{
                 color: "#bbb",
-                fontSize: "28px",
+                fontSize: "22px",
+                marginBottom: "25px",
               }}
             >
               {item.warehouseName}
@@ -204,24 +244,25 @@ export default function Home() {
 
             <div
               style={{
-                marginTop: "30px",
-                marginBottom: "30px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                marginBottom: "25px",
               }}
             >
-              <span style={{ fontSize: "36px" }}>
+              <span style={{ fontSize: "28px" }}>
                 Available Stock
               </span>
 
               <div
                 style={{
                   background:
-                    item.availableStock > 0 ? "green" : "red",
-                  padding: "20px",
-                  borderRadius: "15px",
-                  fontSize: "40px",
+                    item.availableStock > 0
+                      ? "green"
+                      : "red",
+                  padding: "15px 20px",
+                  borderRadius: "12px",
+                  fontSize: "28px",
                   fontWeight: "bold",
                 }}
               >
@@ -230,36 +271,43 @@ export default function Home() {
             </div>
 
             <button
-              onClick={() => reserveProduct(item.productId)}
+              onClick={() =>
+                reserveProduct(item.productId)
+              }
+              disabled={item.availableStock === 0}
               style={{
                 width: "100%",
-                padding: "22px",
-                background: "#2563eb",
+                padding: "18px",
+                background:
+                  item.availableStock === 0
+                    ? "gray"
+                    : "#2563eb",
                 border: "none",
-                borderRadius: "18px",
+                borderRadius: "14px",
                 color: "white",
-                fontSize: "32px",
+                fontSize: "24px",
                 fontWeight: "bold",
                 cursor: "pointer",
-                marginBottom: "20px",
+                marginBottom: "15px",
               }}
             >
               Reserve Product
             </button>
 
-            {timer > 0 && (
+            {activeReservation?.productId ===
+              item.productId && (
               <>
                 <button
                   onClick={confirmReservation}
                   style={{
                     width: "100%",
-                    padding: "20px",
+                    padding: "16px",
                     background: "green",
                     border: "none",
-                    borderRadius: "15px",
+                    borderRadius: "12px",
                     color: "white",
-                    fontSize: "28px",
-                    marginBottom: "15px",
+                    fontSize: "22px",
+                    marginBottom: "12px",
                     cursor: "pointer",
                   }}
                 >
@@ -270,12 +318,12 @@ export default function Home() {
                   onClick={cancelReservation}
                   style={{
                     width: "100%",
-                    padding: "20px",
+                    padding: "16px",
                     background: "red",
                     border: "none",
-                    borderRadius: "15px",
+                    borderRadius: "12px",
                     color: "white",
-                    fontSize: "28px",
+                    fontSize: "22px",
                     cursor: "pointer",
                   }}
                 >
