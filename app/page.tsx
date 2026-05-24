@@ -2,24 +2,30 @@
 
 import { useEffect, useState } from "react";
 
+interface Product {
+  productId: string;
+  productName: string;
+  warehouseId: string;
+  warehouseName: string;
+  availableStock: number;
+}
+
 export default function Home() {
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [message, setMessage] = useState("");
-  const [reservationId, setReservationId] = useState("");
   const [timer, setTimer] = useState(0);
+  const [reservationId, setReservationId] = useState("");
 
   useEffect(() => {
     fetchProducts();
   }, []);
 
   useEffect(() => {
-    let interval: any;
+    if (timer <= 0) return;
 
-    if (timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    }
+    const interval = setInterval(() => {
+      setTimer((prev) => prev - 1);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [timer]);
@@ -34,10 +40,7 @@ export default function Home() {
     }
   };
 
-  const reserveProduct = async (
-    productId: string,
-    warehouseId: string
-  ) => {
+  const reserveProduct = async (productId: string) => {
     try {
       const res = await fetch("/api/reservations", {
         method: "POST",
@@ -46,42 +49,28 @@ export default function Home() {
         },
         body: JSON.stringify({
           productId,
-          warehouseId,
-          quantity: 1,
         }),
       });
 
       const data = await res.json();
 
-      if (res.ok) {
-        setReservationId(data.id);
-        setTimer(300);
+      setReservationId(data.reservationId);
+      setTimer(300);
 
-        setMessage("Product Reserved Successfully");
-        fetchProducts();
-      } else {
-        setMessage(data.error);
-      }
+      setMessage("Reservation created successfully");
     } catch {
-      setMessage("Reservation failed");
+      setMessage("Something went wrong");
     }
   };
 
   const confirmReservation = async () => {
     try {
-      const res = await fetch(
-        `/api/reservations/${reservationId}/confirm`,
-        {
-          method: "POST",
-        }
-      );
+      await fetch(`/api/reservations/${reservationId}/confirm`, {
+        method: "POST",
+      });
 
-      if (res.ok) {
-        setMessage("Reservation Confirmed");
-        setReservationId("");
-        setTimer(0);
-        fetchProducts();
-      }
+      setMessage("Reservation confirmed");
+      setTimer(0);
     } catch {
       setMessage("Confirmation failed");
     }
@@ -89,19 +78,12 @@ export default function Home() {
 
   const cancelReservation = async () => {
     try {
-      const res = await fetch(
-        `/api/reservations/${reservationId}/release`,
-        {
-          method: "POST",
-        }
-      );
+      await fetch(`/api/reservations/${reservationId}/release`, {
+        method: "POST",
+      });
 
-      if (res.ok) {
-        setMessage("Reservation Cancelled");
-        setReservationId("");
-        setTimer(0);
-        fetchProducts();
-      }
+      setMessage("Reservation cancelled");
+      setTimer(0);
     } catch {
       setMessage("Cancellation failed");
     }
@@ -119,8 +101,8 @@ export default function Home() {
     >
       <h1
         style={{
-          textAlign: "center",
           fontSize: "70px",
+          textAlign: "center",
           fontWeight: "bold",
         }}
       >
@@ -131,7 +113,7 @@ export default function Home() {
         style={{
           textAlign: "center",
           color: "#aaa",
-          fontSize: "24px",
+          fontSize: "22px",
           marginBottom: "40px",
         }}
       >
@@ -146,71 +128,25 @@ export default function Home() {
             borderRadius: "15px",
             textAlign: "center",
             marginBottom: "30px",
-            fontSize: "20px",
+            fontSize: "24px",
           }}
         >
           {message}
         </div>
       )}
 
-      {reservationId && (
+      {timer > 0 && (
         <div
           style={{
             background: "#111827",
-            padding: "25px",
-            borderRadius: "20px",
-            marginBottom: "40px",
+            padding: "20px",
+            borderRadius: "15px",
             textAlign: "center",
+            marginBottom: "30px",
+            fontSize: "24px",
           }}
         >
-          <h2>Reservation Active</h2>
-
-          <p
-            style={{
-              fontSize: "22px",
-              margin: "20px 0",
-            }}
-          >
-            Time Remaining: {timer} sec
-          </p>
-
-          <div
-            style={{
-              display: "flex",
-              gap: "20px",
-              justifyContent: "center",
-            }}
-          >
-            <button
-              onClick={confirmReservation}
-              style={{
-                padding: "15px 30px",
-                border: "none",
-                borderRadius: "12px",
-                background: "green",
-                color: "white",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            >
-              Confirm Reservation
-            </button>
-
-            <button
-              onClick={cancelReservation}
-              style={{
-                padding: "15px 30px",
-                border: "none",
-                borderRadius: "12px",
-                background: "red",
-                color: "white",
-                fontSize: "18px",
-                cursor: "pointer",
-              }}
-            >
-              Cancel Reservation
-            </button>
-          </div>
+          Reservation expires in: {timer} sec
         </div>
       )}
 
@@ -219,22 +155,23 @@ export default function Home() {
           display: "flex",
           flexDirection: "column",
           gap: "30px",
-          maxWidth: "700px",
-          margin: "0 auto",
+          alignItems: "center",
         }}
       >
         {products.map((item) => (
           <div
             key={item.productId}
             style={{
-              background: "#111827",
-              padding: "30px",
+              width: "700px",
+              background: "#081028",
+              padding: "40px",
               borderRadius: "25px",
             }}
           >
             <h2
               style={{
-                fontSize: "42px",
+                fontSize: "60px",
+                marginBottom: "10px",
               }}
             >
               {item.productName}
@@ -242,9 +179,8 @@ export default function Home() {
 
             <p
               style={{
-                color: "#aaa",
-                marginBottom: "20px",
-                fontSize: "20px",
+                color: "#bbb",
+                fontSize: "28px",
               }}
             >
               {item.warehouseName}
@@ -252,61 +188,85 @@ export default function Home() {
 
             <div
               style={{
+                marginTop: "30px",
+                marginBottom: "30px",
                 display: "flex",
                 justifyContent: "space-between",
-                marginBottom: "30px",
+                alignItems: "center",
               }}
             >
-              <span style={{ fontSize: "24px" }}>
+              <span style={{ fontSize: "36px" }}>
                 Available Stock
               </span>
 
-              <span
+              <div
                 style={{
                   background:
-                    item.availableStock > 0
-                      ? "green"
-                      : "red",
-                  padding: "10px 20px",
-                  borderRadius: "12px",
-                  fontSize: "24px",
+                    item.availableStock > 0 ? "green" : "red",
+                  padding: "20px",
+                  borderRadius: "15px",
+                  fontSize: "40px",
                   fontWeight: "bold",
                 }}
               >
                 {item.availableStock}
-              </span>
+              </div>
             </div>
 
             <button
-              onClick={() =>
-                reserveProduct(
-                  item.productId,
-                  item.warehouseId
-                )
-              }
-              disabled={item.availableStock === 0}
+              onClick={() => reserveProduct(item.productId)}
               style={{
                 width: "100%",
-                padding: "18px",
+                padding: "22px",
+                background: "#2563eb",
                 border: "none",
-                borderRadius: "15px",
-                background:
-                  item.availableStock > 0
-                    ? "#2563eb"
-                    : "#475569",
+                borderRadius: "18px",
                 color: "white",
-                fontSize: "22px",
+                fontSize: "32px",
                 fontWeight: "bold",
-                cursor:
-                  item.availableStock > 0
-                    ? "pointer"
-                    : "not-allowed",
+                cursor: "pointer",
+                marginBottom: "20px",
               }}
             >
-              {item.availableStock > 0
-                ? "Reserve Product"
-                : "Out Of Stock"}
+              Reserve Product
             </button>
+
+            {timer > 0 && (
+              <>
+                <button
+                  onClick={confirmReservation}
+                  style={{
+                    width: "100%",
+                    padding: "20px",
+                    background: "green",
+                    border: "none",
+                    borderRadius: "15px",
+                    color: "white",
+                    fontSize: "28px",
+                    marginBottom: "15px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Confirm Reservation
+                </button>
+
+                <button
+                  onClick={cancelReservation}
+                  style={{
+                    width: "100%",
+                    padding: "20px",
+                    background: "red",
+                    border: "none",
+                    borderRadius: "15px",
+                    color: "white",
+                    fontSize: "28px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Cancel Reservation
+                </button>
+              </>
+            )}
           </div>
         ))}
       </div>
