@@ -55,7 +55,23 @@ export default function Home() {
       const data = await res.json();
 
       setReservationId(data.reservationId);
+
       setTimer(300);
+
+      // REDUCE STOCK HERE
+      setProducts((prevProducts) =>
+        prevProducts.map((item) =>
+          item.productId === productId
+            ? {
+                ...item,
+                availableStock:
+                  item.availableStock > 0
+                    ? item.availableStock - 1
+                    : 0,
+              }
+            : item
+        )
+      );
 
       setMessage("Reservation created successfully");
     } catch {
