@@ -3,66 +3,59 @@ import { NextResponse } from "next/server";
 
 export async function POST(
   req: Request,
-  context: any
+  { params }: { params: { id: string } }
 ) {
-
   try {
-
-    const reservationId = context.params.id;
-
     const reservation =
-      await prisma.reservation.findFirst({
+      await prisma.reservation.findUnique({
         where: {
-          id: reservationId,
+          id: params.id,
         },
       });
 
     if (!reservation) {
-
       return NextResponse.json(
         { error: "Reservation not found" },
         { status: 404 }
       );
     }
 
-    if (reservation.status !== "PENDING") {
-
-      return NextResponse.json(
-        { error: "Reservation already processed" },
-        { status: 400 }
-      );
-    }
-
-    await prisma.inventory.updateMany({
-      where: {
-        productId: reservation.productId,
-        warehouseId: reservation.warehouseId,
-      },
-      data: {
-        reservedStock: {
-          decrement: reservation.quantity,
-        },
-      },
-    });
-
-    const updatedReservation =
-      await prisma.reservation.update({
+    const inventory =
+      await prisma.inventory.findFirst({
         where: {
-          id: reservation.id,
-        },
-        data: {
-          status: "RELEASED",
+          productId: reservation.productId,
+          warehouseId: reservation.warehouseId,
         },
       });
 
-    return NextResponse.json(updatedReservation);
+    if (inventory) {
+      await prisma.inventory.update({
+        where: {
+          id: inventory.id,
+        },
+        data: {
+          reservedStock:
+            inventory.reservedStock -
+            reservation.quantity,
+        },
+      });
+    }
 
+    await prisma.reservation.update({
+      where: {
+        id: params.id,
+      },
+      data: {
+        status: "RELEASED",
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+    });
   } catch (error) {
-
-    console.log(error);
-
     return NextResponse.json(
-      { error: "Something went wrong" },
+      { error: "Release failed" },
       { status: 500 }
     );
   }
