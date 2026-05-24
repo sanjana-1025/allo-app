@@ -5,12 +5,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const { productId, warehouseId, quantity } = body;
+    const productId = body.productId;
+    const warehouseId = body.warehouseId;
+    const quantity = body.quantity;
 
     const inventory = await prisma.inventory.findFirst({
       where: {
-        productId,
-        warehouseId,
+        productId: productId,
+        warehouseId: warehouseId,
       },
     });
 
@@ -21,12 +23,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const available =
-      inventory.totalStock - inventory.reservedStock;
+    const availableStock =
+      inventory.totalStock -
+      inventory.reservedStock;
 
-    if (available < quantity) {
+    if (availableStock < quantity) {
       return NextResponse.json(
-        { error: "Not enough stock available" },
+        { error: "Not enough stock" },
         { status: 400 }
       );
     }
@@ -41,21 +44,22 @@ export async function POST(req: Request) {
       },
     });
 
-    const reservation = await prisma.reservation.create({
-      data: {
-        productId,
-        warehouseId,
-        quantity,
-        status: "PENDING",
-        expiresAt: new Date(
-          Date.now() + 5 * 60 * 1000
-        ),
-      },
-    });
+    const reservation =
+      await prisma.reservation.create({
+        data: {
+          productId: productId,
+          warehouseId: warehouseId,
+          quantity: quantity,
+          status: "PENDING",
+          expiresAt: new Date(
+            Date.now() + 5 * 60 * 1000
+          ),
+        },
+      });
 
     return NextResponse.json(reservation);
   } catch (error) {
-    console.error("RESERVATION ERROR:", error);
+    console.log(error);
 
     return NextResponse.json(
       { error: "Something went wrong" },
