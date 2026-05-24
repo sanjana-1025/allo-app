@@ -1,139 +1,172 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 
-interface Product {
-  productId: string;
-  productName: string;
-  warehouseName: string;
-  availableStock: number;
-}
-
 export default function Home() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const response = await fetch("/api/products");
-
-        const data = await response.json();
-
-        setProducts(data);
-      } catch (error) {
-        console.error(error);
-        setMessage("Failed to fetch products");
-      }
-    }
-
-    fetchProducts();
+    fetch("/api/products")
+      .then((res) => res.json())
+      .then((data) => setProducts(data))
+      .catch(() => setMessage("Failed to fetch products"));
   }, []);
 
-  async function reserveProduct(productId: string) {
-    try {
-      const response = await fetch("/api/reserve", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          productId,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage("Reservation successful");
-
-        setProducts((prev) =>
-          prev.map((item) =>
-            item.productId === productId
-              ? {
-                  ...item,
-                  availableStock: item.availableStock - 1,
-                }
-              : item
-          )
-        );
-      } else {
-        setMessage(data.error);
+  const reserveProduct = async (id: string) => {
+    const updatedProducts = products.map((item) => {
+      if (item.productId === id && item.availableStock > 0) {
+        return {
+          ...item,
+          availableStock: item.availableStock - 1,
+        };
       }
-    } catch (error) {
-      console.error(error);
-      setMessage("Reservation failed");
-    }
-  }
+      return item;
+    });
+
+    setProducts(updatedProducts);
+    setMessage("Product reserved successfully");
+  };
 
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-10">
-      <div className="max-w-5xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-7xl font-extrabold mb-4">
-            Inventory Reservation System
-          </h1>
+    <main
+      style={{
+        minHeight: "100vh",
+        background: "black",
+        color: "white",
+        padding: "40px",
+        fontFamily: "Arial",
+      }}
+    >
+      <h1
+        style={{
+          textAlign: "center",
+          fontSize: "70px",
+          fontWeight: "bold",
+        }}
+      >
+        Inventory Reservation System
+      </h1>
 
-          <p className="text-gray-400 text-2xl">
-            Multi-Warehouse Real-Time Reservation Platform
-          </p>
+      <p
+        style={{
+          textAlign: "center",
+          color: "#aaa",
+          fontSize: "24px",
+          marginBottom: "50px",
+        }}
+      >
+        Multi-Warehouse Real-Time Reservation Platform
+      </p>
+
+      {message && (
+        <div
+          style={{
+            background: "#1e293b",
+            padding: "20px",
+            borderRadius: "15px",
+            textAlign: "center",
+            marginBottom: "40px",
+            fontSize: "20px",
+          }}
+        >
+          {message}
         </div>
+      )}
 
-        {message && (
-          <div className="bg-gray-800 rounded-2xl p-5 text-center mb-10 text-xl">
-            {message}
-          </div>
-        )}
-
-        <div className="flex flex-col gap-10">
-          {products.map((product) => (
-            <div
-              key={product.productId}
-              className="bg-[#111111] border border-gray-800 rounded-3xl p-10"
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "30px",
+          maxWidth: "700px",
+          margin: "0 auto",
+        }}
+      >
+        {products.map((item) => (
+          <div
+            key={item.productId}
+            style={{
+              background: "#111827",
+              padding: "30px",
+              borderRadius: "25px",
+              border: "1px solid #333",
+            }}
+          >
+            <h2
+              style={{
+                fontSize: "45px",
+                marginBottom: "10px",
+              }}
             >
-              <h2 className="text-5xl font-bold mb-4">
-                {product.productName}
-              </h2>
+              {item.productName}
+            </h2>
 
-              <p className="text-gray-400 text-2xl mb-8">
-                {product.warehouseName}
-              </p>
+            <p
+              style={{
+                color: "#aaa",
+                marginBottom: "30px",
+                fontSize: "20px",
+              }}
+            >
+              {item.warehouseName}
+            </p>
 
-              <div className="flex items-center gap-5 mb-8">
-                <span className="text-2xl">
-                  Available Stock
-                </span>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "30px",
+              }}
+            >
+              <span style={{ fontSize: "28px" }}>
+                Available Stock
+              </span>
 
-                <div
-                  className={`w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold ${
-                    product.availableStock > 0
-                      ? "bg-green-500"
-                      : "bg-red-500"
-                  }`}
-                >
-                  {product.availableStock}
-                </div>
-              </div>
-
-              <button
-                onClick={() =>
-                  reserveProduct(product.productId)
-                }
-                disabled={product.availableStock <= 0}
-                className={`w-full py-5 rounded-2xl text-2xl font-bold ${
-                  product.availableStock > 0
-                    ? "bg-blue-600 hover:bg-blue-700"
-                    : "bg-gray-700 cursor-not-allowed"
-                }`}
+              <span
+                style={{
+                  background:
+                    item.availableStock > 0 ? "green" : "red",
+                  padding: "12px 22px",
+                  borderRadius: "15px",
+                  fontWeight: "bold",
+                  fontSize: "25px",
+                }}
               >
-                {product.availableStock > 0
-                  ? "Reserve Product"
-                  : "Out of Stock"}
-              </button>
+                {item.availableStock}
+              </span>
             </div>
-          ))}
-        </div>
+
+            <button
+              onClick={() =>
+                reserveProduct(item.productId)
+              }
+              disabled={item.availableStock === 0}
+              style={{
+                width: "100%",
+                padding: "18px",
+                borderRadius: "15px",
+                border: "none",
+                background:
+                  item.availableStock > 0
+                    ? "#2563eb"
+                    : "#475569",
+                color: "white",
+                fontSize: "24px",
+                fontWeight: "bold",
+                cursor:
+                  item.availableStock > 0
+                    ? "pointer"
+                    : "not-allowed",
+              }}
+            >
+              {item.availableStock > 0
+                ? "Reserve Product"
+                : "Out of Stock"}
+            </button>
+          </div>
+        ))}
       </div>
     </main>
   );
