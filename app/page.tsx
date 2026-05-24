@@ -74,7 +74,6 @@ export default function Home() {
         timer: 300,
       });
 
-      // reduce stock
       setProducts((prev) =>
         prev.map((item) =>
           item.productId === productId
@@ -124,7 +123,6 @@ export default function Home() {
         }
       );
 
-      // restore stock
       setProducts((prev) =>
         prev.map((item) =>
           item.productId === activeReservation.productId
@@ -147,43 +145,55 @@ export default function Home() {
     <main
       style={{
         minHeight: "100vh",
-        background: "black",
+        background:
+          "linear-gradient(to bottom right, #020617, #0f172a, #020617)",
         color: "white",
-        padding: "30px",
+        padding: "40px",
         fontFamily: "Arial",
       }}
     >
-      <h1
+      <div
         style={{
           textAlign: "center",
-          fontSize: "55px",
-          fontWeight: "bold",
-          marginBottom: "10px",
+          marginBottom: "50px",
         }}
       >
-        Inventory Reservation System
-      </h1>
+        <h1
+          style={{
+            fontSize: "70px",
+            fontWeight: "bold",
+            background:
+              "linear-gradient(to right, #60a5fa, #a78bfa)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            marginBottom: "10px",
+          }}
+        >
+          Inventory Reservation
+        </h1>
 
-      <p
-        style={{
-          textAlign: "center",
-          color: "#aaa",
-          marginBottom: "30px",
-          fontSize: "18px",
-        }}
-      >
-        Multi-Warehouse Real-Time Reservation Platform
-      </p>
+        <p
+          style={{
+            color: "#94a3b8",
+            fontSize: "22px",
+          }}
+        >
+          Multi-Warehouse Real-Time Reservation Platform
+        </p>
+      </div>
 
       {message && (
         <div
           style={{
-            background: "#1e293b",
-            padding: "15px",
-            borderRadius: "12px",
+            maxWidth: "700px",
+            margin: "0 auto 30px",
+            background: "rgba(30,41,59,0.7)",
+            padding: "18px",
+            borderRadius: "18px",
             textAlign: "center",
-            marginBottom: "20px",
-            fontSize: "18px",
+            fontSize: "20px",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255,255,255,0.1)",
           }}
         >
           {message}
@@ -193,15 +203,22 @@ export default function Home() {
       {activeReservation && (
         <div
           style={{
-            background: "#111827",
-            padding: "15px",
-            borderRadius: "12px",
+            maxWidth: "700px",
+            margin: "0 auto 40px",
+            background: "rgba(15,23,42,0.8)",
+            padding: "18px",
+            borderRadius: "18px",
             textAlign: "center",
-            marginBottom: "30px",
-            fontSize: "20px",
+            fontSize: "22px",
+            border: "1px solid rgba(96,165,250,0.4)",
+            boxShadow: "0 0 20px rgba(96,165,250,0.2)",
           }}
         >
-          Reservation expires in: {activeReservation.timer} sec
+          Reservation expires in:{" "}
+          <span style={{ color: "#60a5fa" }}>
+            {activeReservation.timer}
+          </span>{" "}
+          sec
         </div>
       )}
 
@@ -209,24 +226,29 @@ export default function Home() {
         style={{
           display: "flex",
           flexDirection: "column",
+          gap: "35px",
           alignItems: "center",
-          gap: "25px",
         }}
       >
         {products.map((item) => (
           <div
             key={item.productId}
             style={{
-              width: "500px",
-              background: "#081028",
-              padding: "30px",
-              borderRadius: "20px",
+              width: "520px",
+              padding: "35px",
+              borderRadius: "28px",
+              background: "rgba(15,23,42,0.7)",
+              backdropFilter: "blur(12px)",
+              border: "1px solid rgba(255,255,255,0.08)",
+              boxShadow:
+                "0 10px 40px rgba(0,0,0,0.5)",
             }}
           >
             <h2
               style={{
-                fontSize: "42px",
-                marginBottom: "10px",
+                fontSize: "46px",
+                marginBottom: "12px",
+                fontWeight: "bold",
               }}
             >
               {item.productName}
@@ -234,9 +256,9 @@ export default function Home() {
 
             <p
               style={{
-                color: "#bbb",
+                color: "#94a3b8",
                 fontSize: "22px",
-                marginBottom: "25px",
+                marginBottom: "35px",
               }}
             >
               {item.warehouseName}
@@ -247,10 +269,14 @@ export default function Home() {
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "25px",
+                marginBottom: "30px",
               }}
             >
-              <span style={{ fontSize: "28px" }}>
+              <span
+                style={{
+                  fontSize: "28px",
+                }}
+              >
                 Available Stock
               </span>
 
@@ -258,12 +284,14 @@ export default function Home() {
                 style={{
                   background:
                     item.availableStock > 0
-                      ? "green"
-                      : "red",
-                  padding: "15px 20px",
-                  borderRadius: "12px",
+                      ? "linear-gradient(to right,#16a34a,#22c55e)"
+                      : "linear-gradient(to right,#dc2626,#ef4444)",
+                  padding: "14px 22px",
+                  borderRadius: "14px",
                   fontSize: "28px",
                   fontWeight: "bold",
+                  boxShadow:
+                    "0 4px 15px rgba(0,0,0,0.3)",
                 }}
               >
                 {item.availableStock}
@@ -280,15 +308,16 @@ export default function Home() {
                 padding: "18px",
                 background:
                   item.availableStock === 0
-                    ? "gray"
-                    : "#2563eb",
+                    ? "#475569"
+                    : "linear-gradient(to right,#2563eb,#7c3aed)",
                 border: "none",
-                borderRadius: "14px",
+                borderRadius: "16px",
                 color: "white",
                 fontSize: "24px",
                 fontWeight: "bold",
                 cursor: "pointer",
-                marginBottom: "15px",
+                marginBottom: "18px",
+                transition: "0.3s",
               }}
             >
               Reserve Product
@@ -302,12 +331,14 @@ export default function Home() {
                   style={{
                     width: "100%",
                     padding: "16px",
-                    background: "green",
+                    background:
+                      "linear-gradient(to right,#16a34a,#22c55e)",
                     border: "none",
-                    borderRadius: "12px",
+                    borderRadius: "14px",
                     color: "white",
                     fontSize: "22px",
-                    marginBottom: "12px",
+                    fontWeight: "bold",
+                    marginBottom: "14px",
                     cursor: "pointer",
                   }}
                 >
@@ -319,11 +350,13 @@ export default function Home() {
                   style={{
                     width: "100%",
                     padding: "16px",
-                    background: "red",
+                    background:
+                      "linear-gradient(to right,#dc2626,#ef4444)",
                     border: "none",
-                    borderRadius: "12px",
+                    borderRadius: "14px",
                     color: "white",
                     fontSize: "22px",
+                    fontWeight: "bold",
                     cursor: "pointer",
                   }}
                 >
